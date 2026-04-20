@@ -1,8 +1,13 @@
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, declarative_base
 import os
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker, DeclarativeBase
 
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./nexoria.db")
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./db.sqlite3")
+
+
+class Base(DeclarativeBase):
+    pass
+
 
 engine = create_engine(
     DATABASE_URL,
@@ -10,5 +15,3 @@ engine = create_engine(
 )
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-
-Base = declarative_base()

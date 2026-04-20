@@ -1,18 +1,14 @@
-from fastapi import APIRouter
-from pydantic import BaseModel
-from cryptobot_client import create_invoice
+from dataclasses import dataclass
 from sqlalchemy.orm import Session
 from database import SessionLocal
 from models import Payment
 from security import rate_limit
+from cryptobot_client import create_invoice
 
-router = APIRouter()
 
-
-class CreateInvoiceRequest(BaseModel):
-    tg_id: int
-    tariff: str
-
+# -----------------------------
+#   ТАРИФЫ
+# -----------------------------
 
 TARIFFS = {
     "day": {"name": "1 день", "amount": 1.49},
@@ -22,39 +18,50 @@ TARIFFS = {
 }
 
 
-@router.post("/create_invoice")
-def create_invoice_endpoint(req: CreateInvoiceRequest):
-    # защита от флуда
-    rate_limit(str(req.tg_id))
+# -----------------------------
+#   ЗАПРОС БЕЗ Pydantic
+# -----------------------------
 
-    tariff = TARIFFS[req.tariff]
+@dataclass
+class CreateInvoiceRequest:
+    tg_id: int
+    tariff: str
 
+
+# -----------------------------
+#   ОСНОВНАЯ ФУНКЦИЯ СОЗДАНИЯ ИНВОЙСА
+# -----------------------------
+
+def create_invoice_logic(req: CreateInvoiceRequest):
+    """
+    Полностью заменяет FastAPI endpoint.
+    Вызывается напрямую из aiogram-хендлера.
+    """
+
+    rate_limit(req.tg_id)
+
+    if req.tariff not in TARIFFS:
+        raise ValueError("Неверный тариф")
+
+    tariff_data = TARIFFS[req.tariff]
+
+    # Создаём инвойс через CryptoBot API
     invoice = create_invoice(
-        amount=tariff["amount"],
-        asset="USDT",
-        description=tariff["name"],
-        payload={"tg_id": req.tg_id, "tariff": req.tariff}
+        amount=tariff_data["amount"],
+        description=tariff_data["name"],
+        payload=str(req.tg_id)
     )
 
+    # Сохраняем в БД
     db: Session = SessionLocal()
-
     payment = Payment(
         tg_id=req.tg_id,
         tariff=req.tariff,
-        amount=tariff["amount"],
-        asset="USDT",
         invoice_id=invoice["invoice_id"],
-        pay_url=invoice["pay_url"],
         status="pending"
     )
-
     db.add(payment)
     db.commit()
+    db.refresh(payment)
 
-    return {
-        "tariff_name": tariff["name"],
-        "amount": tariff["amount"],
-        "asset": "USDT",
-        "pay_url": invoice["pay_url"],
-    }
-
+    return invoice

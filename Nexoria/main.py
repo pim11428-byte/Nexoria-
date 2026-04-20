@@ -7,15 +7,12 @@ from aiogram.filters import Command
 from aiogram.enums import ParseMode
 from dotenv import load_dotenv
 
-# Загружаем .env
 load_dotenv()
 
 TOKEN = os.getenv("BOT_TOKEN")
 
-# Логирование
 logging.basicConfig(level=logging.INFO)
 
-# Создаём объекты бота и диспетчера
 bot = Bot(token=TOKEN, parse_mode=ParseMode.HTML)
 dp = Dispatcher()
 
@@ -26,12 +23,12 @@ dp = Dispatcher()
 
 @dp.message(Command("start"))
 async def cmd_start(message: types.Message):
-    await message.answer("Бот работает на aiogram 3.x и Render Worker!")
+    await message.answer("Бот работает на aiogram 3.x и полностью совместим с Render!")
 
 
 @dp.message(Command("help"))
 async def cmd_help(message: types.Message):
-    await message.answer("Список команд:\n/start -- запуск\n/help -- помощь")
+    await message.answer("Команды:\n/start -- запуск\n/help -- помощь")
 
 
 # -----------------------------
@@ -39,7 +36,6 @@ async def cmd_help(message: types.Message):
 # -----------------------------
 
 async def main():
-    # Запуск long polling
     await dp.start_polling(bot)
 
 
