@@ -3,3 +3,4 @@ builder = "NIXPACKS"
 
 [start]
 cmd = "python3 main.py"
+
